@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TableType {
+  POOL
+  SNOOKER
+  CAROM
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+}
+
+model Table {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  type        TableType   @default(POOL)
+  status      TableStatus @default(AVAILABLE)
+  hourlyRate  Int         @default(50000)
+  location    String?
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("tables")
+}

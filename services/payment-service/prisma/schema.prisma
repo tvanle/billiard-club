@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  MOMO
+  ZALOPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  sessionId     String
+  customerId    String?
+  staffId       String
+  sessionAmount Int           @default(0)
+  orderAmount   Int           @default(0)
+  discount      Int           @default(0)
+  totalAmount   Int
+  method        PaymentMethod @default(CASH)
+  status        PaymentStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  paymentId   String   @unique
+  invoiceNo   String   @unique
+  customerName String?
+  items       Json
+  subtotal    Int
+  discount    Int      @default(0)
+  total       Int
+  createdAt   DateTime @default(now())
+
+  @@map("invoices")
+}
+
+model DailyReport {
+  id              String   @id @default(cuid())
+  date            DateTime @unique
+  totalSessions   Int      @default(0)
+  totalOrders     Int      @default(0)
+  sessionRevenue  Int      @default(0)
+  orderRevenue    Int      @default(0)
+  totalRevenue    Int      @default(0)
+  cashAmount      Int      @default(0)
+  cardAmount      Int      @default(0)
+  transferAmount  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("daily_reports")
+}

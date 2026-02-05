@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  icon        String?
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  menuItems   MenuItem[]
+
+  @@map("categories")
+}
+
+model MenuItem {
+  id          String      @id @default(cuid())
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  name        String
+  description String?
+  price       Int
+  image       String?
+  available   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+
+  @@map("menu_items")
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  sessionId   String
+  tableId     String
+  status      OrderStatus @default(PENDING)
+  notes       String?
+  totalAmount Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  items       OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int      @default(1)
+  unitPrice  Int
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@map("order_items")
+}

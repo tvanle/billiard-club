@@ -1,0 +1,28 @@
+{
+  "name": "billiard-club",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:gateway": "npm run dev --workspace=services/gateway",
+    "dev:tables": "npm run dev --workspace=services/table-service",
+    "dev:sessions": "npm run dev --workspace=services/session-service",
+    "dev:orders": "npm run dev --workspace=services/order-service",
+    "dev:users": "npm run dev --workspace=services/user-service",
+    "dev:payments": "npm run dev --workspace=services/payment-service",
+    "build": "npm run build --workspaces --if-present",
+    "db:push": "npm run db:push --workspaces --if-present",
+    "db:seed": "npm run db:seed --workspaces --if-present",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "install:all": "npm install && npm install --workspaces"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

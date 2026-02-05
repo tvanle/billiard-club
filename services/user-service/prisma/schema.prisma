@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+  CUSTOMER
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  INACTIVE
+}
+
+enum MembershipLevel {
+  STANDARD
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  role          UserRole  @default(STAFF)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  employee      Employee?
+  customer      Customer?
+
+  @@map("users")
+}
+
+model Employee {
+  id          String         @id @default(cuid())
+  userId      String         @unique
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId  String         @unique
+  position    String
+  department  String?
+  salary      Int?
+  startDate   DateTime       @default(now())
+  status      EmployeeStatus @default(ACTIVE)
+  shift       String?
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("employees")
+}
+
+model Customer {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipLevel MembershipLevel @default(STANDARD)
+  loyaltyPoints   Int             @default(0)
+  totalSpent      Int             @default(0)
+  dateOfBirth     DateTime?
+  address         String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@map("customers")
+}
