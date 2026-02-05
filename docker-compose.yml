@@ -1,7 +1,9 @@
+name: billiard-club
+
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: billiard-postgres
+    container_name: billiard-club-db
     environment:
       POSTGRES_USER: billiard
       POSTGRES_PASSWORD: billiard123
@@ -9,7 +11,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - billiard_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U billiard -d billiard_club"]
       interval: 10s
@@ -18,11 +20,11 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: billiard-redis
+    container_name: billiard-club-cache
     ports:
       - "6380:6379"
     volumes:
-      - redis_data:/data
+      - billiard_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -30,5 +32,5 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
-  redis_data:
+  billiard_postgres_data:
+  billiard_redis_data:
