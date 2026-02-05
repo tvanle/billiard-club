@@ -2,7 +2,7 @@
     "name": "@billiard-club/web",
     "version": "1.0.0",
     "scripts": {
-        "dev": "next dev -p 3002",
+        "dev": "next dev -p 3010",
         "build": "next build",
         "start": "next start",
         "lint": "next lint"
