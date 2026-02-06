@@ -17,7 +17,7 @@ async function seed() {
     const admin = await prisma.user.create({
         data: {
             email: 'admin@billiard.club',
-            passwordHash,
+            password: passwordHash,
             name: 'Admin',
             phone: '0900000000',
             role: 'ADMIN',
@@ -30,7 +30,7 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'manager@billiard.club',
-                passwordHash,
+                password: passwordHash,
                 name: 'Nguyễn Văn An',
                 phone: '0901234567',
                 role: 'MANAGER',
@@ -40,7 +40,7 @@ async function seed() {
                         position: 'Quản lý ca',
                         department: 'Quản lý',
                         salary: 12000000,
-                        shift: 'Ca sáng (6:00 - 14:00)',
+                        shift: 'MORNING',
                     },
                 },
             },
@@ -48,7 +48,7 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'staff1@billiard.club',
-                passwordHash,
+                password: passwordHash,
                 name: 'Trần Thị Bình',
                 phone: '0912345678',
                 role: 'STAFF',
@@ -58,7 +58,7 @@ async function seed() {
                         position: 'Nhân viên phục vụ',
                         department: 'Phục vụ',
                         salary: 8000000,
-                        shift: 'Ca chiều (14:00 - 22:00)',
+                        shift: 'AFTERNOON',
                     },
                 },
             },
@@ -66,7 +66,7 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'staff2@billiard.club',
-                passwordHash,
+                password: passwordHash,
                 name: 'Lê Văn Cường',
                 phone: '0923456789',
                 role: 'STAFF',
@@ -76,7 +76,7 @@ async function seed() {
                         position: 'Nhân viên thu ngân',
                         department: 'Thu ngân',
                         salary: 9000000,
-                        shift: 'Ca tối (22:00 - 6:00)',
+                        shift: 'NIGHT',
                     },
                 },
             },
@@ -84,7 +84,7 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'staff3@billiard.club',
-                passwordHash,
+                password: passwordHash,
                 name: 'Phạm Thị Dung',
                 phone: '0934567890',
                 role: 'STAFF',
@@ -94,7 +94,7 @@ async function seed() {
                         position: 'Nhân viên bar',
                         department: 'Bar',
                         salary: 7500000,
-                        shift: 'Ca sáng (6:00 - 14:00)',
+                        shift: 'MORNING',
                         status: 'ON_LEAVE',
                     },
                 },
@@ -103,7 +103,7 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'tech@billiard.club',
-                passwordHash,
+                password: passwordHash,
                 name: 'Hoàng Văn Em',
                 phone: '0945678901',
                 role: 'STAFF',
@@ -113,7 +113,7 @@ async function seed() {
                         position: 'Kỹ thuật viên',
                         department: 'Kỹ thuật',
                         salary: 10000000,
-                        shift: 'Ca chiều (14:00 - 22:00)',
+                        shift: 'AFTERNOON',
                     },
                 },
             },
@@ -126,14 +126,14 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'customer1@gmail.com',
-                passwordHash,
+                password: passwordHash,
                 name: 'Nguyễn Văn Khách',
                 phone: '0961234567',
                 role: 'CUSTOMER',
                 customer: {
                     create: {
                         membershipLevel: 'GOLD',
-                        loyaltyPoints: 5000,
+                        points: 5000,
                         totalSpent: 5000000,
                     },
                 },
@@ -142,14 +142,14 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'customer2@gmail.com',
-                passwordHash,
+                password: passwordHash,
                 name: 'Trần Văn Hàng',
                 phone: '0972345678',
                 role: 'CUSTOMER',
                 customer: {
                     create: {
                         membershipLevel: 'SILVER',
-                        loyaltyPoints: 2000,
+                        points: 2000,
                         totalSpent: 2000000,
                     },
                 },
@@ -158,14 +158,14 @@ async function seed() {
         prisma.user.create({
             data: {
                 email: 'customer3@gmail.com',
-                passwordHash,
+                password: passwordHash,
                 name: 'Lê Thị Mai',
                 phone: '0983456789',
                 role: 'CUSTOMER',
                 customer: {
                     create: {
                         membershipLevel: 'PLATINUM',
-                        loyaltyPoints: 15000,
+                        points: 15000,
                         totalSpent: 15000000,
                     },
                 },

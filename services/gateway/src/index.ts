@@ -3,15 +3,15 @@ import cors from 'cors';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 9001;
 
 // Service URLs
 const services = {
-    tables: process.env.TABLE_SERVICE_URL || 'http://localhost:4001',
-    sessions: process.env.SESSION_SERVICE_URL || 'http://localhost:4002',
-    orders: process.env.ORDER_SERVICE_URL || 'http://localhost:4003',
-    users: process.env.USER_SERVICE_URL || 'http://localhost:4004',
-    payments: process.env.PAYMENT_SERVICE_URL || 'http://localhost:4005',
+    tables: process.env.TABLE_SERVICE_URL || 'http://localhost:9011',
+    sessions: process.env.SESSION_SERVICE_URL || 'http://localhost:9013',
+    orders: process.env.ORDER_SERVICE_URL || 'http://localhost:9015',
+    users: process.env.USER_SERVICE_URL || 'http://localhost:9017',
+    payments: process.env.PAYMENT_SERVICE_URL || 'http://localhost:9019',
 };
 
 // Middleware

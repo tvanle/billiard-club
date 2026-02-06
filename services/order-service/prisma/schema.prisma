@@ -7,23 +7,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum OrderStatus {
-  PENDING
-  PREPARING
-  READY
-  DELIVERED
+// ==================== TABLE SERVICE ====================
+enum TableType {
+  POOL
+  SNOOKER
+  CAROM
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+}
+
+model Table {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  type        TableType   @default(POOL)
+  status      TableStatus @default(AVAILABLE)
+  hourlyRate  Int         @default(50000)
+  location    String?
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("tables")
+}
+
+// ==================== SESSION SERVICE ====================
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
   CANCELLED
 }
 
+model Session {
+  id          String        @id @default(cuid())
+  tableId     String
+  tableName   String?
+  customerId  String?
+  staffId     String
+  startTime   DateTime      @default(now())
+  endTime     DateTime?
+  pausedTime  Int           @default(0)
+  hourlyRate  Int
+  totalCost   Int?
+  status      SessionStatus @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("sessions")
+}
+
+// ==================== ORDER SERVICE ====================
 model Category {
   id          String     @id @default(cuid())
   name        String     @unique
   description String?
   icon        String?
   sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+  items       MenuItem[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  menuItems   MenuItem[]
 
   @@map("categories")
 }
@@ -36,24 +85,35 @@ model MenuItem {
   description String?
   price       Int
   image       String?
-  available   Boolean     @default(true)
+  isAvailable Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  items       OrderItem[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  orderItems  OrderItem[]
 
   @@map("menu_items")
 }
 
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
 model Order {
-  id          String      @id @default(cuid())
-  sessionId   String
-  tableId     String
-  status      OrderStatus @default(PENDING)
-  notes       String?
-  totalAmount Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  items       OrderItem[]
+  id         String      @id @default(cuid())
+  sessionId  String?
+  tableId    String
+  tableName  String?
+  staffId    String?
+  status     OrderStatus @default(PENDING)
+  totalPrice Int         @default(0)
+  notes      String?
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   @@map("orders")
 }
@@ -64,10 +124,154 @@ model OrderItem {
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItemId String
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
-  quantity   Int      @default(1)
-  unitPrice  Int
-  note       String?
+  name       String
+  price      Int
+  quantity   Int
   createdAt  DateTime @default(now())
 
   @@map("order_items")
+}
+
+// ==================== USER SERVICE ====================
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+  CUSTOMER
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  RESIGNED
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  EVENING
+  NIGHT
+}
+
+enum MembershipLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  VIP
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  name      String
+  phone     String?
+  avatar    String?
+  role      UserRole  @default(CUSTOMER)
+  isActive  Boolean   @default(true)
+  employee  Employee?
+  customer  Customer?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Employee {
+  id         String         @id @default(cuid())
+  userId     String         @unique
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId String         @unique
+  department String?
+  position   String?
+  salary     Int?
+  shift      Shift?
+  status     EmployeeStatus @default(ACTIVE)
+  hireDate   DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@map("employees")
+}
+
+model Customer {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipLevel MembershipLevel @default(BRONZE)
+  points          Int             @default(0)
+  totalSpent      Int             @default(0)
+  visitCount      Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@map("customers")
+}
+
+// ==================== PAYMENT SERVICE ====================
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  MOMO
+  ZALOPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  sessionId     String
+  staffId       String
+  customerId    String?
+  sessionAmount Int
+  orderAmount   Int
+  discount      Int           @default(0)
+  totalAmount   Int
+  method        PaymentMethod @default(CASH)
+  status        PaymentStatus @default(PENDING)
+  notes         String?
+  invoice       Invoice?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  paymentId     String   @unique
+  payment       Payment  @relation(fields: [paymentId], references: [id])
+  invoiceNumber String   @unique
+  customerName  String?
+  customerPhone String?
+  items         Json
+  subtotal      Int
+  discount      Int
+  total         Int
+  createdAt     DateTime @default(now())
+
+  @@map("invoices")
+}
+
+model DailyReport {
+  id              String   @id @default(cuid())
+  date            DateTime @unique @db.Date
+  totalRevenue    Int      @default(0)
+  sessionRevenue  Int      @default(0)
+  orderRevenue    Int      @default(0)
+  totalSessions   Int      @default(0)
+  totalOrders     Int      @default(0)
+  averageSession  Int      @default(0)
+  topTable        String?
+  topMenuItem     String?
+  createdAt       DateTime @default(now())
+
+  @@map("daily_reports")
 }
