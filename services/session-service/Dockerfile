@@ -51,7 +51,7 @@ RUN adduser --system --uid 1001 appuser
 COPY --from=builder --chown=appuser:nodejs /app/services/session-service/dist ./dist
 COPY --from=builder --chown=appuser:nodejs /app/services/session-service/package.json ./
 COPY --from=builder --chown=appuser:nodejs /app/services/session-service/prisma ./prisma
-COPY --from=deps --chown=appuser:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:nodejs /app/node_modules ./node_modules
 
 USER appuser
 

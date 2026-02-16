@@ -7,8 +7,8 @@ import { PrismaClient } from '@prisma/client';
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 4004;
-const JWT_SECRET = process.env.JWT_SECRET || 'billiard-club-secret';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_SECRET: string = process.env.JWT_SECRET || 'billiard-club-secret';
+const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
 
 // Middleware
 app.use(cors());
@@ -50,15 +50,17 @@ app.post('/auth/register', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: 'Email already exists' });
         }
 
-        const passwordHash = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
-            data: { email, passwordHash, name, phone, role: role || 'CUSTOMER' },
+            data: { email, password: hashedPassword, name, phone, role: role || 'CUSTOMER' },
             select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
         });
 
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
-            expiresIn: JWT_EXPIRES_IN,
-        });
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN } as any
+        );
 
         res.status(201).json({ success: true, data: { user, token } });
     } catch (error) {
@@ -76,7 +78,7 @@ app.post('/auth/login', async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
-        const validPassword = await bcrypt.compare(password, user.passwordHash);
+        const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
@@ -85,17 +87,13 @@ app.post('/auth/login', async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, error: 'Account is disabled' });
         }
 
-        // Update last login
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { lastLogin: new Date() },
-        });
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN } as any
+        );
 
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
-            expiresIn: JWT_EXPIRES_IN,
-        });
-
-        const { passwordHash, ...userWithoutPassword } = user;
+        const { password: _, ...userWithoutPassword } = user;
         res.json({ success: true, data: { user: userWithoutPassword, token } });
     } catch (error) {
         res.status(500).json({ success: false, error: 'Failed to login' });
@@ -109,7 +107,7 @@ app.get('/auth/me', authMiddleware, async (req: AuthRequest, res: Response) => {
             where: { id: req.user?.id },
             select: {
                 id: true, email: true, name: true, phone: true, role: true,
-                avatar: true, createdAt: true, lastLogin: true,
+                avatar: true, createdAt: true,
                 employee: true,
                 customer: true,
             },
@@ -133,15 +131,15 @@ app.post('/auth/change-password', authMiddleware, async (req: AuthRequest, res: 
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        const validPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+        const validPassword = await bcrypt.compare(currentPassword, user.password);
         if (!validPassword) {
             return res.status(400).json({ success: false, error: 'Current password is incorrect' });
         }
 
-        const passwordHash = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
             where: { id: user.id },
-            data: { passwordHash },
+            data: { password: hashedPassword },
         });
 
         res.json({ success: true, message: 'Password changed successfully' });
@@ -164,7 +162,7 @@ app.get('/users', async (req: Request, res: Response) => {
             where,
             select: {
                 id: true, email: true, name: true, phone: true, role: true,
-                avatar: true, isActive: true, lastLogin: true, createdAt: true,
+                avatar: true, isActive: true, createdAt: true,
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -181,7 +179,7 @@ app.get('/users/:id', async (req: Request, res: Response) => {
             where: { id: req.params.id },
             select: {
                 id: true, email: true, name: true, phone: true, role: true,
-                avatar: true, isActive: true, lastLogin: true, createdAt: true,
+                avatar: true, isActive: true, createdAt: true,
                 employee: true,
                 customer: true,
             },
@@ -241,9 +239,9 @@ app.post('/employees', async (req: Request, res: Response) => {
         const { email, password, name, phone, role, employeeId, position, department, salary, shift } = req.body;
 
         // Create user first
-        const passwordHash = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
-            data: { email, passwordHash, name, phone, role: role || 'STAFF' },
+            data: { email, password: hashedPassword, name, phone, role: role || 'STAFF' },
         });
 
         // Create employee
@@ -272,10 +270,10 @@ app.post('/employees', async (req: Request, res: Response) => {
 // Update employee
 app.put('/employees/:id', async (req: Request, res: Response) => {
     try {
-        const { position, department, salary, shift, status, notes } = req.body;
+        const { position, department, salary, shift, status } = req.body;
         const employee = await prisma.employee.update({
             where: { id: req.params.id },
-            data: { position, department, salary, shift, status, notes },
+            data: { position, department, salary, shift, status },
             include: { user: { select: { id: true, email: true, name: true, phone: true, role: true } } },
         });
         res.json({ success: true, data: employee });
@@ -325,19 +323,17 @@ app.get('/customers', async (req: Request, res: Response) => {
 // Create customer
 app.post('/customers', async (req: Request, res: Response) => {
     try {
-        const { email, password, name, phone, dateOfBirth, address, membershipLevel } = req.body;
+        const { email, password, name, phone, membershipLevel } = req.body;
 
-        const passwordHash = await bcrypt.hash(password || 'default123', 10);
+        const hashedPassword = await bcrypt.hash(password || 'default123', 10);
         const user = await prisma.user.create({
-            data: { email, passwordHash, name, phone, role: 'CUSTOMER' },
+            data: { email, password: hashedPassword, name, phone, role: 'CUSTOMER' },
         });
 
         const customer = await prisma.customer.create({
             data: {
                 userId: user.id,
-                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-                address,
-                membershipLevel: membershipLevel || 'STANDARD',
+                membershipLevel: membershipLevel || 'BRONZE',
             },
             include: {
                 user: { select: { id: true, email: true, name: true, phone: true } },
@@ -353,14 +349,11 @@ app.post('/customers', async (req: Request, res: Response) => {
 // Update customer
 app.put('/customers/:id', async (req: Request, res: Response) => {
     try {
-        const { membershipLevel, dateOfBirth, address, notes } = req.body;
+        const { membershipLevel } = req.body;
         const customer = await prisma.customer.update({
             where: { id: req.params.id },
             data: {
                 membershipLevel,
-                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-                address,
-                notes
             },
             include: { user: { select: { id: true, email: true, name: true, phone: true } } },
         });
@@ -377,7 +370,7 @@ app.patch('/customers/:id/points', async (req: Request, res: Response) => {
         const customer = await prisma.customer.update({
             where: { id: req.params.id },
             data: {
-                loyaltyPoints: { increment: points || 0 },
+                points: { increment: points || 0 },
                 totalSpent: { increment: totalSpent || 0 },
             },
         });
