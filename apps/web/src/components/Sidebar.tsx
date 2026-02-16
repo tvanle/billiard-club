@@ -75,7 +75,16 @@ export default function Sidebar() {
 
             {/* User section */}
             <div className="p-4 border-t border-border">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-light transition-colors cursor-pointer">
+                <div
+                    onClick={() => {
+                        if (confirm('Đăng xuất khỏi hệ thống?')) {
+                            alert('Chức năng đang phát triển. Sẽ clear localStorage và redirect về /login');
+                            // localStorage.removeItem('token');
+                            // window.location.href = '/login';
+                        }
+                    }}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-light transition-colors cursor-pointer"
+                >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent-blue flex items-center justify-center text-white font-semibold">
                         AD
                     </div>

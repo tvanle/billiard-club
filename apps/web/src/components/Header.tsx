@@ -5,6 +5,8 @@ import { useState } from 'react';
 
 export default function Header() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [isDark, setIsDark] = useState(true);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     return (
         <header className="h-16 bg-surface/80 backdrop-blur-xl border-b border-border sticky top-0 z-40">
@@ -43,14 +45,79 @@ export default function Header() {
                     </div>
 
                     {/* Notifications */}
-                    <button className="relative p-2 rounded-lg hover:bg-surface-light transition-colors group">
-                        <Bell size={20} className="text-text-secondary group-hover:text-text-primary transition-colors" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-accent-red rounded-full" />
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className="relative p-2 rounded-lg hover:bg-surface-light transition-colors group"
+                        >
+                            <Bell size={20} className="text-text-secondary group-hover:text-text-primary transition-colors" />
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-accent-red rounded-full" />
+                        </button>
+
+                        {/* Notifications Dropdown */}
+                        {showNotifications && (
+                            <div className="absolute right-0 top-12 w-80 bg-surface border border-border rounded-lg shadow-xl z-50 animate-slide-down">
+                                <div className="p-4 border-b border-border">
+                                    <h3 className="font-semibold text-text-primary">Thông báo</h3>
+                                </div>
+                                <div className="max-h-96 overflow-y-auto">
+                                    {/* Sample Notifications */}
+                                    <div className="p-4 border-b border-border hover:bg-surface-light transition-colors cursor-pointer">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-accent-red mt-2" />
+                                            <div className="flex-1">
+                                                <p className="text-sm text-text-primary font-medium">Bàn Pool 03 cần thanh toán</p>
+                                                <p className="text-xs text-text-muted mt-1">Phiên chơi đã kết thúc, chờ thanh toán</p>
+                                                <p className="text-xs text-text-muted mt-1">5 phút trước</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 border-b border-border hover:bg-surface-light transition-colors cursor-pointer">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-accent-yellow mt-2" />
+                                            <div className="flex-1">
+                                                <p className="text-sm text-text-primary font-medium">Order mới từ bàn Snooker 02</p>
+                                                <p className="text-xs text-text-muted mt-1">2x Trà đào, 1x Cà phê sữa</p>
+                                                <p className="text-xs text-text-muted mt-1">10 phút trước</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 hover:bg-surface-light transition-colors cursor-pointer">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-accent-green mt-2" />
+                                            <div className="flex-1">
+                                                <p className="text-sm text-text-primary font-medium">Thanh toán thành công</p>
+                                                <p className="text-xs text-text-muted mt-1">Bàn Pool 01 - 150,000đ</p>
+                                                <p className="text-xs text-text-muted mt-1">30 phút trước</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-3 border-t border-border text-center">
+                                    <button className="text-sm text-primary hover:text-primary-light font-medium">Xem tất cả thông báo</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Theme toggle */}
-                    <button className="p-2 rounded-lg hover:bg-surface-light transition-colors group">
-                        <Moon size={20} className="text-text-secondary group-hover:text-text-primary transition-colors" />
+                    <button
+                        onClick={() => {
+                            const next = !isDark;
+                            setIsDark(next);
+                            if (next) {
+                                document.documentElement.classList.remove('light');
+                            } else {
+                                document.documentElement.classList.add('light');
+                            }
+                        }}
+                        className="p-2 rounded-lg hover:bg-surface-light transition-colors group"
+                    >
+                        {isDark ? (
+                            <Moon size={20} className="text-text-secondary group-hover:text-text-primary transition-colors" />
+                        ) : (
+                            <Sun size={20} className="text-text-secondary group-hover:text-text-primary transition-colors" />
+                        )}
                     </button>
                 </div>
             </div>

@@ -48,6 +48,7 @@ export default function SessionsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
+    const [showStartModal, setShowStartModal] = useState(false);
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
     const fetchSessions = async () => {
@@ -98,6 +99,7 @@ export default function SessionsPage() {
                     <p className="text-text-secondary mt-1">Theo dõi và quản lý các phiên chơi</p>
                 </div>
                 <button
+                    onClick={() => setShowStartModal(true)}
                     className="flex items-center gap-2 px-4 py-2.5 bg-accent-green hover:bg-accent-green/80
                      rounded-lg text-white font-medium transition-colors"
                 >
@@ -240,6 +242,73 @@ export default function SessionsPage() {
                     </div>
                 ))}
             </div>
+
+            {/* Start Session Modal */}
+            {showStartModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-surface rounded-xl p-6 max-w-md w-full space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-text-primary">Bắt đầu phiên mới</h2>
+                            <button
+                                onClick={() => setShowStartModal(false)}
+                                className="p-2 rounded-lg hover:bg-surface-light transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form className="space-y-4" onSubmit={(e) => {
+                            e.preventDefault();
+                            alert('Chức năng đang phát triển. API: POST /sessions với tableId, customerId, staffId');
+                            setShowStartModal(false);
+                        }}>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Chọn bàn</label>
+                                <select className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required>
+                                    <option value="">-- Chọn bàn --</option>
+                                    <option value="1">Pool 01 (50,000đ/h)</option>
+                                    <option value="2">Snooker 01 (80,000đ/h)</option>
+                                    <option value="3">Carom 01 (70,000đ/h)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Khách hàng (tùy chọn)</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    placeholder="Tên hoặc SĐT khách hàng"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Ghi chú</label>
+                                <textarea
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    rows={3}
+                                    placeholder="Ghi chú về phiên chơi..."
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowStartModal(false)}
+                                    className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium transition-colors"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-accent-green hover:bg-accent-green/80 rounded-lg text-white font-medium transition-colors"
+                                >
+                                    Bắt đầu
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

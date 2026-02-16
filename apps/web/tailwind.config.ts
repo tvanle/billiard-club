@@ -9,11 +9,12 @@ const config: Config = {
     theme: {
         extend: {
             colors: {
-                // Dark theme colors
-                background: '#0a0a0f',
-                surface: '#12121a',
-                'surface-light': '#1a1a24',
-                border: '#2a2a38',
+                // Semantic colors — RGB CSS variables with Tailwind opacity support
+                background: 'rgb(var(--color-background) / <alpha-value>)',
+                surface: 'rgb(var(--color-surface) / <alpha-value>)',
+                'surface-light': 'rgb(var(--color-surface-light) / <alpha-value>)',
+                border: 'rgb(var(--color-border) / <alpha-value>)',
+                // Primary (same for both themes)
                 primary: {
                     DEFAULT: '#6366f1',
                     light: '#818cf8',
@@ -25,12 +26,13 @@ const config: Config = {
                     yellow: '#f59e0b',
                     blue: '#3b82f6',
                 },
+                // Text — RGB CSS variables with opacity support
                 text: {
-                    primary: '#f8fafc',
-                    secondary: '#94a3b8',
-                    muted: '#64748b',
+                    primary: 'rgb(var(--color-text-primary) / <alpha-value>)',
+                    secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
+                    muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
                 },
-                // Table status colors
+                // Table status colors (same for both themes)
                 table: {
                     available: '#10b981',
                     occupied: '#ef4444',

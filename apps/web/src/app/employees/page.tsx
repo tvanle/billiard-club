@@ -51,6 +51,10 @@ export default function EmployeesPage() {
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
     const [filterRole, setFilterRole] = useState<string>('ALL');
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [viewEmployee, setViewEmployee] = useState<any>(null);
 
     const fetchEmployees = async () => {
         setLoading(true);
@@ -97,6 +101,7 @@ export default function EmployeesPage() {
                     <p className="text-text-secondary mt-1">Quản lý thông tin và lịch làm việc của nhân viên</p>
                 </div>
                 <button
+                    onClick={() => setShowAddModal(true)}
                     className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-dark
                      rounded-lg text-white font-medium transition-colors"
                 >
@@ -241,13 +246,32 @@ export default function EmployeesPage() {
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-2">
-                                        <button className="p-2 rounded-lg hover:bg-surface-light transition-colors">
+                                        <button
+                                            onClick={() => {
+                                                setViewEmployee(employee);
+                                                setShowViewModal(true);
+                                            }}
+                                            className="p-2 rounded-lg hover:bg-surface-light transition-colors"
+                                        >
                                             <Eye size={16} className="text-text-muted hover:text-text-primary" />
                                         </button>
-                                        <button className="p-2 rounded-lg hover:bg-surface-light transition-colors">
+                                        <button
+                                            onClick={() => {
+                                                setViewEmployee(employee);
+                                                setShowEditModal(true);
+                                            }}
+                                            className="p-2 rounded-lg hover:bg-surface-light transition-colors"
+                                        >
                                             <Edit size={16} className="text-text-muted hover:text-primary" />
                                         </button>
-                                        <button className="p-2 rounded-lg hover:bg-surface-light transition-colors">
+                                        <button
+                                            onClick={() => {
+                                                if (confirm(`Xóa nhân viên ${employee.user?.name}?`)) {
+                                                    alert('Chức năng đang phát triển. API: DELETE /employees/' + employee.id);
+                                                }
+                                            }}
+                                            className="p-2 rounded-lg hover:bg-surface-light transition-colors"
+                                        >
                                             <Trash2 size={16} className="text-text-muted hover:text-accent-red" />
                                         </button>
                                     </div>
@@ -257,6 +281,115 @@ export default function EmployeesPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Add Employee Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-surface rounded-xl p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between sticky top-0 bg-surface pb-4">
+                            <h2 className="text-xl font-bold text-text-primary">Thêm nhân viên mới</h2>
+                            <button onClick={() => setShowAddModal(false)} className="p-2 rounded-lg hover:bg-surface-light">✕</button>
+                        </div>
+
+                        <form className="space-y-4" onSubmit={(e) => {
+                            e.preventDefault();
+                            alert('Chức năng đang phát triển. API: POST /employees');
+                            setShowAddModal(false);
+                        }}>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Họ tên *</label>
+                                    <input type="text" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Email *</label>
+                                    <input type="email" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Số điện thoại *</label>
+                                    <input type="tel" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Chức vụ *</label>
+                                    <input type="text" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Phòng ban</label>
+                                    <input type="text" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Lương (VNĐ)</label>
+                                    <input type="number" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium">Hủy</button>
+                                <button type="submit" className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium">Thêm nhân viên</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* View Employee Modal */}
+            {showViewModal && viewEmployee && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-surface rounded-xl p-6 max-w-lg w-full space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-text-primary">Thông tin nhân viên</h2>
+                            <button onClick={() => setShowViewModal(false)} className="p-2 rounded-lg hover:bg-surface-light">✕</button>
+                        </div>
+                        <div className="space-y-3">
+                            <div><span className="text-text-secondary">Họ tên:</span> <span className="text-text-primary font-medium">{viewEmployee.user?.name}</span></div>
+                            <div><span className="text-text-secondary">Email:</span> <span className="text-text-primary">{viewEmployee.user?.email}</span></div>
+                            <div><span className="text-text-secondary">Điện thoại:</span> <span className="text-text-primary">{viewEmployee.user?.phone}</span></div>
+                            <div><span className="text-text-secondary">Chức vụ:</span> <span className="text-text-primary">{viewEmployee.position}</span></div>
+                            <div><span className="text-text-secondary">Phòng ban:</span> <span className="text-text-primary">{viewEmployee.department}</span></div>
+                            <div><span className="text-text-secondary">Lương:</span> <span className="text-accent-green font-medium">{viewEmployee.salary?.toLocaleString('vi-VN')}đ</span></div>
+                            <div><span className="text-text-secondary">Ca làm:</span> <span className="text-text-primary">{viewEmployee.shift}</span></div>
+                        </div>
+                        <button onClick={() => setShowViewModal(false)} className="w-full px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium">Đóng</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Employee Modal */}
+            {showEditModal && viewEmployee && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-surface rounded-xl p-6 max-w-lg w-full space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-text-primary">Chỉnh sửa nhân viên</h2>
+                            <button onClick={() => setShowEditModal(false)} className="p-2 rounded-lg hover:bg-surface-light">✕</button>
+                        </div>
+                        <form className="space-y-4" onSubmit={(e) => {
+                            e.preventDefault();
+                            alert('Chức năng đang phát triển. API: PUT /employees/' + viewEmployee.id);
+                            setShowEditModal(false);
+                        }}>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Chức vụ</label>
+                                <input type="text" defaultValue={viewEmployee.position} className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Phòng ban</label>
+                                <input type="text" defaultValue={viewEmployee.department} className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Lương (VNĐ)</label>
+                                <input type="number" defaultValue={viewEmployee.salary} className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium">Hủy</button>
+                                <button type="submit" className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium">Lưu thay đổi</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

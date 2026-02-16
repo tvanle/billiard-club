@@ -152,6 +152,75 @@ export default function TablesPage() {
                     )}
                 </div>
             )}
+
+            {/* Add Table Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-surface rounded-xl p-6 max-w-md w-full space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-text-primary">Thêm bàn mới</h2>
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="p-2 rounded-lg hover:bg-surface-light transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form className="space-y-4" onSubmit={(e) => {
+                            e.preventDefault();
+                            // TODO: Implement add table functionality
+                            alert('Chức năng đang phát triển. Sẽ gọi API create table ở đây.');
+                            setShowAddModal(false);
+                        }}>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Tên bàn</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    placeholder="Ví dụ: Pool 06"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Loại bàn</label>
+                                <select className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary">
+                                    <option value="POOL">Pool</option>
+                                    <option value="SNOOKER">Snooker</option>
+                                    <option value="CAROM">Carom</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Giá theo giờ (VNĐ)</label>
+                                <input
+                                    type="number"
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    placeholder="50000"
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddModal(false)}
+                                    className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium transition-colors"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium transition-colors"
+                                >
+                                    Thêm bàn
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
