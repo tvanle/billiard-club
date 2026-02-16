@@ -1,67 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreditCard, DollarSign, Receipt, TrendingUp, Clock, CheckCircle, XCircle, Wallet } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
-
-type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MOMO' | 'ZALOPAY';
-type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
-
-interface Payment {
-    id: string;
-    sessionId: string;
-    tableName: string;
-    customerName: string;
-    sessionAmount: number;
-    orderAmount: number;
-    discount: number;
-    totalAmount: number;
-    method: PaymentMethod;
-    status: PaymentStatus;
-    createdAt: Date;
-}
-
-const mockPayments: Payment[] = [
-    {
-        id: '1',
-        sessionId: 'sess-1',
-        tableName: 'Pool 01',
-        customerName: 'Nguyễn Văn A',
-        sessionAmount: 150000,
-        orderAmount: 85000,
-        discount: 10000,
-        totalAmount: 225000,
-        method: 'CASH',
-        status: 'COMPLETED',
-        createdAt: new Date(),
-    },
-    {
-        id: '2',
-        sessionId: 'sess-2',
-        tableName: 'Snooker 02',
-        customerName: 'Trần Văn B',
-        sessionAmount: 240000,
-        orderAmount: 120000,
-        discount: 0,
-        totalAmount: 360000,
-        method: 'CARD',
-        status: 'COMPLETED',
-        createdAt: new Date(Date.now() - 3600000),
-    },
-    {
-        id: '3',
-        sessionId: 'sess-3',
-        tableName: 'Pool 03',
-        customerName: 'Lê Thị C',
-        sessionAmount: 100000,
-        orderAmount: 45000,
-        discount: 5000,
-        totalAmount: 140000,
-        method: 'MOMO',
-        status: 'PENDING',
-        createdAt: new Date(Date.now() - 7200000),
-    },
-];
+import { paymentsApi, Payment, PaymentMethod, PaymentStatus } from '@/lib/api';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 const methodIcons: Record<PaymentMethod, string> = {
     CASH: '💵',
@@ -87,17 +31,48 @@ const statusConfig: Record<PaymentStatus, { label: string; color: string; icon: 
 };
 
 export default function PaymentsPage() {
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<PaymentStatus | 'ALL'>('ALL');
     const [methodFilter, setMethodFilter] = useState<PaymentMethod | 'ALL'>('ALL');
 
-    const filteredPayments = mockPayments.filter((payment) => {
+    const fetchPayments = async () => {
+        setLoading(true);
+        setError(null);
+        const res = await paymentsApi.getAll();
+        if (res.success && res.data) {
+            setPayments(res.data);
+        } else {
+            setError(res.error || 'Failed to fetch payments');
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchPayments();
+    }, []);
+
+    const handleCompletePayment = async (paymentId: string) => {
+        const res = await paymentsApi.complete(paymentId);
+        if (res.success) {
+            await fetchPayments();
+        } else {
+            alert(res.error || 'Failed to complete payment');
+        }
+    };
+
+    if (loading) return <LoadingSpinner message="Loading payments..." />;
+    if (error) return <ErrorDisplay message={error} onRetry={fetchPayments} />;
+
+    const filteredPayments = payments.filter((payment) => {
         if (filter !== 'ALL' && payment.status !== filter) return false;
         if (methodFilter !== 'ALL' && payment.method !== methodFilter) return false;
         return true;
     });
 
-    const totalRevenue = mockPayments.filter(p => p.status === 'COMPLETED').reduce((sum, p) => sum + p.totalAmount, 0);
-    const pendingAmount = mockPayments.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + p.totalAmount, 0);
+    const totalRevenue = payments.filter(p => p.status === PaymentStatus.COMPLETED).reduce((sum, p) => sum + p.totalAmount, 0);
+    const pendingAmount = payments.filter(p => p.status === PaymentStatus.PENDING).reduce((sum, p) => sum + p.totalAmount, 0);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -130,13 +105,13 @@ export default function PaymentsPage() {
                 />
                 <StatsCard
                     title="Giao dịch"
-                    value={mockPayments.length.toString()}
+                    value={payments.length.toString()}
                     icon={Receipt}
                     color="blue"
                 />
                 <StatsCard
                     title="Tiền mặt"
-                    value={formatCurrency(mockPayments.filter(p => p.method === 'CASH' && p.status === 'COMPLETED').reduce((s, p) => s + p.totalAmount, 0))}
+                    value={formatCurrency(payments.filter(p => p.method === PaymentMethod.CASH && p.status === PaymentStatus.COMPLETED).reduce((s, p) => s + p.totalAmount, 0))}
                     icon={Wallet}
                     color="purple"
                 />

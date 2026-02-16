@@ -17,6 +17,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - billiard-network
 
   redis:
     image: redis:7-alpine
@@ -30,6 +32,167 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - billiard-network
+
+  # Application Services
+  table-service:
+    build:
+      context: .
+      dockerfile: services/table-service/Dockerfile
+    container_name: billiard-club-table-service
+    environment:
+      NODE_ENV: production
+      PORT: 9011
+      DATABASE_URL: postgresql://billiard:billiard123@postgres:5432/billiard_club?schema=public
+    ports:
+      - "9011:9011"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - billiard-network
+
+  session-service:
+    build:
+      context: .
+      dockerfile: services/session-service/Dockerfile
+    container_name: billiard-club-session-service
+    environment:
+      NODE_ENV: production
+      PORT: 9013
+      DATABASE_URL: postgresql://billiard:billiard123@postgres:5432/billiard_club?schema=public
+      TABLE_SERVICE_URL: http://table-service:9011
+    ports:
+      - "9013:9013"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      table-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9013/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - billiard-network
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    container_name: billiard-club-order-service
+    environment:
+      NODE_ENV: production
+      PORT: 9015
+      DATABASE_URL: postgresql://billiard:billiard123@postgres:5432/billiard_club?schema=public
+    ports:
+      - "9015:9015"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9015/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - billiard-network
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    container_name: billiard-club-user-service
+    environment:
+      NODE_ENV: production
+      PORT: 9017
+      DATABASE_URL: postgresql://billiard:billiard123@postgres:5432/billiard_club?schema=public
+      JWT_SECRET: your-secret-key-change-in-production
+    ports:
+      - "9017:9017"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9017/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - billiard-network
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    container_name: billiard-club-payment-service
+    environment:
+      NODE_ENV: production
+      PORT: 9019
+      DATABASE_URL: postgresql://billiard:billiard123@postgres:5432/billiard_club?schema=public
+    ports:
+      - "9019:9019"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9019/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - billiard-network
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    container_name: billiard-club-gateway
+    environment:
+      NODE_ENV: production
+      PORT: 9001
+      TABLE_SERVICE_URL: http://table-service:9011
+      SESSION_SERVICE_URL: http://session-service:9013
+      ORDER_SERVICE_URL: http://order-service:9015
+      USER_SERVICE_URL: http://user-service:9017
+      PAYMENT_SERVICE_URL: http://payment-service:9019
+    ports:
+      - "9001:9001"
+    depends_on:
+      table-service:
+        condition: service_healthy
+      session-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - billiard-network
+
+networks:
+  billiard-network:
+    driver: bridge
 
 volumes:
   billiard_postgres_data:

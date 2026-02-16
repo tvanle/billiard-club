@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Plus,
     Search,
@@ -15,75 +15,9 @@ import {
     Trash2,
     Eye,
 } from 'lucide-react';
-
-// Mock data for employees
-const mockEmployees = [
-    {
-        id: '1',
-        name: 'Nguyễn Văn An',
-        email: 'an.nguyen@billiard.club',
-        phone: '0901234567',
-        role: 'MANAGER',
-        position: 'Quản lý ca',
-        status: 'ACTIVE',
-        avatar: null,
-        startDate: '2024-01-15',
-        shift: 'Ca sáng (6:00 - 14:00)',
-        salary: 12000000,
-    },
-    {
-        id: '2',
-        name: 'Trần Thị Bình',
-        email: 'binh.tran@billiard.club',
-        phone: '0912345678',
-        role: 'STAFF',
-        position: 'Nhân viên phục vụ',
-        status: 'ACTIVE',
-        avatar: null,
-        startDate: '2024-02-01',
-        shift: 'Ca chiều (14:00 - 22:00)',
-        salary: 8000000,
-    },
-    {
-        id: '3',
-        name: 'Lê Văn Cường',
-        email: 'cuong.le@billiard.club',
-        phone: '0923456789',
-        role: 'STAFF',
-        position: 'Nhân viên thu ngân',
-        status: 'ACTIVE',
-        avatar: null,
-        startDate: '2024-03-10',
-        shift: 'Ca tối (22:00 - 6:00)',
-        salary: 9000000,
-    },
-    {
-        id: '4',
-        name: 'Phạm Thị Dung',
-        email: 'dung.pham@billiard.club',
-        phone: '0934567890',
-        role: 'STAFF',
-        position: 'Nhân viên bar',
-        status: 'ON_LEAVE',
-        avatar: null,
-        startDate: '2024-01-20',
-        shift: 'Ca sáng (6:00 - 14:00)',
-        salary: 7500000,
-    },
-    {
-        id: '5',
-        name: 'Hoàng Văn Em',
-        email: 'em.hoang@billiard.club',
-        phone: '0945678901',
-        role: 'STAFF',
-        position: 'Kỹ thuật viên',
-        status: 'ACTIVE',
-        avatar: null,
-        startDate: '2023-12-01',
-        shift: 'Ca chiều (14:00 - 22:00)',
-        salary: 10000000,
-    },
-];
+import { employeesApi, Employee, EmployeeStatus, UserRole } from '@/lib/api';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 const statusColors = {
     ACTIVE: 'bg-accent-green/20 text-accent-green border-accent-green/50',
@@ -110,25 +44,48 @@ const roleLabels = {
 };
 
 export default function EmployeesPage() {
+    const [employees, setEmployees] = useState<(Employee & { user?: any })[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
     const [filterRole, setFilterRole] = useState<string>('ALL');
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
 
-    const filteredEmployees = mockEmployees.filter((emp) => {
+    const fetchEmployees = async () => {
+        setLoading(true);
+        setError(null);
+        const res = await employeesApi.getAll();
+        if (res.success && res.data) {
+            setEmployees(res.data);
+        } else {
+            setError(res.error || 'Failed to fetch employees');
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchEmployees();
+    }, []);
+
+    if (loading) return <LoadingSpinner message="Loading employees..." />;
+    if (error) return <ErrorDisplay message={error} onRetry={fetchEmployees} />;
+
+    const filteredEmployees = employees.filter((emp) => {
         const matchesSearch =
-            emp.name.toLowerCase().includes(search.toLowerCase()) ||
-            emp.email.toLowerCase().includes(search.toLowerCase()) ||
-            emp.phone.includes(search);
+            emp.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
+            emp.user?.email?.toLowerCase().includes(search.toLowerCase()) ||
+            emp.user?.phone?.includes(search) ||
+            search === '';
         const matchesStatus = filterStatus === 'ALL' || emp.status === filterStatus;
-        const matchesRole = filterRole === 'ALL' || emp.role === filterRole;
+        const matchesRole = filterRole === 'ALL' || emp.user?.role === filterRole;
         return matchesSearch && matchesStatus && matchesRole;
     });
 
     const stats = {
-        total: mockEmployees.length,
-        active: mockEmployees.filter((e) => e.status === 'ACTIVE').length,
-        onLeave: mockEmployees.filter((e) => e.status === 'ON_LEAVE').length,
+        total: employees.length,
+        active: employees.filter((e) => e.status === EmployeeStatus.ACTIVE).length,
+        onLeave: employees.filter((e) => e.status === EmployeeStatus.ON_LEAVE).length,
     };
 
     return (
@@ -247,13 +204,13 @@ export default function EmployeesPage() {
                             >
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent-blue 
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent-blue
                                   flex items-center justify-center text-white font-semibold">
-                                            {employee.name.charAt(0)}
+                                            {employee.user?.name?.charAt(0) || 'U'}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-text-primary">{employee.name}</p>
-                                            <p className="text-xs text-text-muted">{employee.position}</p>
+                                            <p className="text-sm font-medium text-text-primary">{employee.user?.name || 'Unknown'}</p>
+                                            <p className="text-xs text-text-muted">{employee.position || 'N/A'}</p>
                                         </div>
                                     </div>
                                 </td>
@@ -261,21 +218,21 @@ export default function EmployeesPage() {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2 text-xs text-text-secondary">
                                             <Mail size={12} />
-                                            {employee.email}
+                                            {employee.user?.email || 'N/A'}
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-text-secondary">
                                             <Phone size={12} />
-                                            {employee.phone}
+                                            {employee.user?.phone || 'N/A'}
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded text-xs font-medium ${roleColors[employee.role as keyof typeof roleColors]}`}>
-                                        {roleLabels[employee.role as keyof typeof roleLabels]}
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${roleColors[(employee.user?.role || 'STAFF') as keyof typeof roleColors]}`}>
+                                        {roleLabels[(employee.user?.role || 'STAFF') as keyof typeof roleLabels]}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <p className="text-sm text-text-secondary">{employee.shift}</p>
+                                    <p className="text-sm text-text-secondary">{employee.shift || 'N/A'}</p>
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded border text-xs font-medium ${statusColors[employee.status as keyof typeof statusColors]}`}>

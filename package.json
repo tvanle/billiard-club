@@ -18,8 +18,12 @@
     "build": "npm run build --workspaces --if-present",
     "db:push": "npm run db:push --workspaces --if-present",
     "db:seed": "npm run db:seed --workspaces --if-present",
+    "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:rebuild": "docker-compose down && docker-compose build --no-cache && docker-compose up -d",
+    "docker:ps": "docker-compose ps",
     "install:all": "npm install && npm install --workspaces"
   },
   "devDependencies": {

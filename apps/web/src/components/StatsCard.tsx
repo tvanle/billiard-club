@@ -3,13 +3,14 @@ import { LucideIcon, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 interface StatsCardProps {
     title: string;
     value: string;
-    subtitle: string;
+    subtitle?: string;
     icon: LucideIcon;
     trend?: {
         value: number;
-        isUp: boolean;
+        isUp?: boolean;
+        isPositive?: boolean;
     };
-    color: 'primary' | 'green' | 'yellow' | 'blue' | 'red';
+    color: 'primary' | 'green' | 'yellow' | 'blue' | 'red' | 'purple';
 }
 
 const colorClasses = {
@@ -38,22 +39,28 @@ const colorClasses = {
         text: 'text-accent-red',
         icon: 'text-accent-red',
     },
+    purple: {
+        bg: 'bg-purple-500/20',
+        text: 'text-purple-500',
+        icon: 'text-purple-500',
+    },
 };
 
 export default function StatsCard({ title, value, subtitle, icon: Icon, trend, color }: StatsCardProps) {
     const colors = colorClasses[color];
+    const trendIsPositive = trend ? (trend.isUp ?? trend.isPositive ?? false) : false;
 
     return (
         <div className="glass rounded-xl p-5 hover:border-primary/30 transition-all duration-300 group">
             <div className="flex items-start justify-between">
-                <div className={`w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center 
+                <div className={`w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center
                         group-hover:scale-110 transition-transform duration-300`}>
                     <Icon size={24} className={colors.icon} />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-xs font-medium
-                          ${trend.isUp ? 'text-accent-green' : 'text-accent-red'}`}>
-                        {trend.isUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                          ${trendIsPositive ? 'text-accent-green' : 'text-accent-red'}`}>
+                        {trendIsPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                         {trend.value}%
                     </div>
                 )}
@@ -61,7 +68,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, c
             <div className="mt-4">
                 <p className="text-2xl font-bold text-text-primary">{value}</p>
                 <p className="text-sm text-text-muted mt-1">{title}</p>
-                <p className="text-xs text-text-secondary mt-0.5">{subtitle}</p>
+                {subtitle && <p className="text-xs text-text-secondary mt-0.5">{subtitle}</p>}
             </div>
         </div>
     );

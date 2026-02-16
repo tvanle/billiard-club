@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Users, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
+import { reportsApi, DailyReport } from '@/lib/api';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 interface DailyData {
     date: string;
@@ -10,17 +13,6 @@ interface DailyData {
     sessions: number;
     orders: number;
 }
-
-const mockDailyData: DailyData[] = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    return {
-        date: date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }),
-        revenue: Math.floor(Math.random() * 5000000) + 2000000,
-        sessions: Math.floor(Math.random() * 30) + 10,
-        orders: Math.floor(Math.random() * 50) + 20,
-    };
-});
 
 const topTables = [
     { name: 'Pool 01', revenue: 2500000, sessions: 45 },
@@ -39,14 +31,43 @@ const topMenuItems = [
 ];
 
 export default function ReportsPage() {
+    const [reportData, setReportData] = useState<DailyData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [period, setPeriod] = useState<'day' | 'week' | 'month'>('week');
 
-    const totalRevenue = mockDailyData.reduce((sum, d) => sum + d.revenue, 0);
-    const totalSessions = mockDailyData.reduce((sum, d) => sum + d.sessions, 0);
-    const totalOrders = mockDailyData.reduce((sum, d) => sum + d.orders, 0);
-    const avgRevenue = totalRevenue / mockDailyData.length;
+    const fetchReports = async () => {
+        setLoading(true);
+        setError(null);
+        const res = await reportsApi.daily();
+        if (res.success && res.data) {
+            // Map API response to chart format
+            const mapped: DailyData = {
+                date: new Date(res.data.date).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }),
+                revenue: res.data.totalRevenue,
+                sessions: res.data.totalSessions,
+                orders: res.data.totalOrders,
+            };
+            setReportData([mapped]);
+        } else {
+            setError(res.error || 'Failed to fetch reports');
+        }
+        setLoading(false);
+    };
 
-    const maxRevenue = Math.max(...mockDailyData.map(d => d.revenue));
+    useEffect(() => {
+        fetchReports();
+    }, [period]);
+
+    if (loading) return <LoadingSpinner message="Loading reports..." />;
+    if (error) return <ErrorDisplay message={error} onRetry={fetchReports} />;
+
+    const totalRevenue = reportData.reduce((sum, d) => sum + d.revenue, 0);
+    const totalSessions = reportData.reduce((sum, d) => sum + d.sessions, 0);
+    const totalOrders = reportData.reduce((sum, d) => sum + d.orders, 0);
+    const avgRevenue = reportData.length > 0 ? totalRevenue / reportData.length : 0;
+
+    const maxRevenue = reportData.length > 0 ? Math.max(...reportData.map(d => d.revenue)) : 1;
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -111,7 +132,7 @@ export default function ReportsPage() {
                 <div className="lg:col-span-2 glass-card p-6">
                     <h3 className="text-lg font-semibold mb-4">Doanh thu theo ngày</h3>
                     <div className="h-64 flex items-end gap-2">
-                        {mockDailyData.map((day, index) => (
+                        {reportData.map((day, index) => (
                             <div key={index} className="flex-1 flex flex-col items-center gap-2">
                                 <div className="w-full flex flex-col items-center">
                                     <span className="text-xs text-gray-400 mb-1">

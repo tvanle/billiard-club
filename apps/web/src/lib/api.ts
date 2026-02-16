@@ -1,11 +1,11 @@
 // API client for connecting to backend services via Gateway
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001/api';
 
-interface ApiResponse<T> {
-    success: boolean;
-    data?: T;
-    error?: string;
-}
+// Export all types from the types file
+export * from '@/types/api';
+
+import type { ApiResponse } from '@/types/api';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001/api';
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
@@ -16,9 +16,23 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<Api
                 ...options?.headers,
             },
         });
-        return await response.json();
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: data.error || data.message || `HTTP ${response.status}: ${response.statusText}`
+            };
+        }
+
+        return data;
     } catch (error) {
-        return { success: false, error: 'Network error' };
+        console.error('API Error:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Network error - unable to connect to server'
+        };
     }
 }
 

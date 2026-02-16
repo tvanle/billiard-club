@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Play,
     Square,
@@ -12,49 +12,9 @@ import {
     Search,
     Timer,
 } from 'lucide-react';
-
-// Mock data for sessions
-const mockSessions = [
-    {
-        id: '1',
-        tableId: '1',
-        tableName: 'Pool 01',
-        tableType: 'POOL',
-        customerName: 'Nguyễn Văn A',
-        staffName: 'Trần Thị B',
-        startTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        endTime: null,
-        status: 'ACTIVE',
-        hourlyRate: 50000,
-        currentCost: 100000,
-    },
-    {
-        id: '2',
-        tableId: '5',
-        tableName: 'Snooker 01',
-        tableType: 'SNOOKER',
-        customerName: 'Trần Văn B',
-        staffName: 'Lê Văn C',
-        startTime: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(),
-        endTime: null,
-        status: 'ACTIVE',
-        hourlyRate: 80000,
-        currentCost: 120000,
-    },
-    {
-        id: '3',
-        tableId: '7',
-        tableName: 'Carom 01',
-        tableType: 'CAROM',
-        customerName: 'Lê Văn C',
-        staffName: 'Nguyễn Văn A',
-        startTime: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-        endTime: null,
-        status: 'ACTIVE',
-        hourlyRate: 60000,
-        currentCost: 45000,
-    },
-];
+import { sessionsApi, Session, SessionStatus } from '@/lib/api';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 function formatDuration(startTime: string): string {
     const start = new Date(startTime);
@@ -84,16 +44,47 @@ function SessionTimer({ startTime }: { startTime: string }) {
 }
 
 export default function SessionsPage() {
+    const [sessions, setSessions] = useState<Session[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
-    const activeSessions = mockSessions.filter((s) => s.status === 'ACTIVE');
-    const totalRevenue = activeSessions.reduce((sum, s) => sum + s.currentCost, 0);
+    const fetchSessions = async () => {
+        setLoading(true);
+        setError(null);
+        const res = await sessionsApi.getAll();
+        if (res.success && res.data) {
+            setSessions(res.data);
+        } else {
+            setError(res.error || 'Failed to fetch sessions');
+        }
+        setLoading(false);
+    };
 
-    const filteredSessions = mockSessions.filter((session) => {
+    useEffect(() => {
+        fetchSessions();
+    }, []);
+
+    const handleEndSession = async (sessionId: string) => {
+        const res = await sessionsApi.end(sessionId);
+        if (res.success) {
+            await fetchSessions();
+        } else {
+            alert(res.error || 'Failed to end session');
+        }
+    };
+
+    if (loading) return <LoadingSpinner message="Loading sessions..." />;
+    if (error) return <ErrorDisplay message={error} onRetry={fetchSessions} />;
+
+    const activeSessions = sessions.filter((s) => s.status === SessionStatus.ACTIVE);
+    const totalRevenue = activeSessions.reduce((sum, s) => sum + (s.totalCost || 0), 0);
+
+    const filteredSessions = sessions.filter((session) => {
         const matchesSearch =
-            session.tableName.toLowerCase().includes(search.toLowerCase()) ||
-            session.customerName.toLowerCase().includes(search.toLowerCase());
+            (session.tableName?.toLowerCase().includes(search.toLowerCase())) ||
+            search === '';
         const matchesStatus = filterStatus === 'ALL' || session.status === filterStatus;
         return matchesSearch && matchesStatus;
     });
@@ -193,8 +184,8 @@ export default function SessionsPage() {
                                     <Table2 size={24} className="text-accent-green" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-text-primary">{session.tableName}</h3>
-                                    <p className="text-xs text-text-muted">{session.tableType}</p>
+                                    <h3 className="font-bold text-text-primary">{session.tableName || 'Unknown Table'}</h3>
+                                    <p className="text-xs text-text-muted">Table #{session.tableId}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 px-2 py-1 bg-accent-green/20 rounded-full">
@@ -218,8 +209,8 @@ export default function SessionsPage() {
                         <div className="space-y-2 mb-4">
                             <div className="flex items-center gap-2 text-sm">
                                 <User size={14} className="text-text-muted" />
-                                <span className="text-text-secondary">Khách: </span>
-                                <span className="text-text-primary">{session.customerName}</span>
+                                <span className="text-text-secondary">Staff: </span>
+                                <span className="text-text-primary">{session.staffId}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                                 <DollarSign size={14} className="text-text-muted" />
@@ -232,14 +223,17 @@ export default function SessionsPage() {
                         <div className="flex items-center justify-between pt-4 border-t border-border">
                             <span className="text-sm text-text-muted">Tạm tính</span>
                             <span className="text-xl font-bold text-accent-green">
-                                {session.currentCost.toLocaleString('vi-VN')}đ
+                                {(session.totalCost || 0).toLocaleString('vi-VN')}đ
                             </span>
                         </div>
 
                         {/* Action */}
-                        <button className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 
-                             bg-accent-red/20 hover:bg-accent-red/40 text-accent-red 
-                             rounded-lg font-medium transition-colors">
+                        <button
+                            onClick={() => handleEndSession(session.id)}
+                            className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5
+                             bg-accent-red/20 hover:bg-accent-red/40 text-accent-red
+                             rounded-lg font-medium transition-colors"
+                        >
                             <Square size={16} />
                             Kết thúc phiên
                         </button>

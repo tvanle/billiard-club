@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, Table } from '@/lib/api';
+import { tablesApi, Table } from '@/lib/api';
 
 interface TableStore {
     tables: Table[];
@@ -19,7 +19,7 @@ export const useTableStore = create<TableStore>((set, get) => ({
 
     fetchTables: async () => {
         set({ loading: true, error: null });
-        const res = await api.getTables();
+        const res = await tablesApi.getAll();
         if (res.success && res.data) {
             set({ tables: res.data, loading: false });
         } else {
@@ -28,11 +28,13 @@ export const useTableStore = create<TableStore>((set, get) => ({
     },
 
     updateTableStatus: async (id: string, status: Table['status']) => {
-        const res = await api.updateTableStatus(id, status);
+        const res = await tablesApi.updateStatus(id, status);
         if (res.success && res.data) {
             set({
                 tables: get().tables.map((t) => (t.id === id ? res.data! : t)),
             });
+        } else {
+            set({ error: res.error || 'Failed to update table status' });
         }
     },
 
