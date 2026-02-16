@@ -15,6 +15,7 @@ RUN npm ci
 # Stage 3: Build shared package
 FROM base AS build-shared
 COPY --from=deps /app/node_modules ./node_modules
+COPY tsconfig.json ./
 COPY packages/shared ./packages/shared
 WORKDIR /app/packages/shared
 RUN npm run build
@@ -30,7 +31,7 @@ RUN npx prisma generate
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build-shared /app/packages/shared ./packages/shared
-COPY --from=prisma /app/services/order-service/node_modules/.prisma ./services/order-service/node_modules/.prisma
+COPY --from=prisma /app/node_modules/.prisma ./node_modules/.prisma
 COPY services/order-service ./services/order-service
 COPY tsconfig.json ./
 WORKDIR /app/services/order-service

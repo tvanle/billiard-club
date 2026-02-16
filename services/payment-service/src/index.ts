@@ -76,7 +76,7 @@ app.post('/payments', async (req: Request, res: Response) => {
         let sessionAmount = 0;
         try {
             const sessionRes = await fetch(`${SESSION_SERVICE_URL}/sessions/${sessionId}/cost`);
-            const sessionData = await sessionRes.json();
+            const sessionData = await sessionRes.json() as any;
             if (sessionData.success) {
                 sessionAmount = sessionData.data.currentCost;
             }
@@ -88,7 +88,7 @@ app.post('/payments', async (req: Request, res: Response) => {
         let orderAmount = 0;
         try {
             const ordersRes = await fetch(`${ORDER_SERVICE_URL}/sessions/${sessionId}/orders`);
-            const ordersData = await ordersRes.json();
+            const ordersData = await ordersRes.json() as any;
             if (ordersData.success) {
                 orderAmount = ordersData.data.totalAmount;
             }
@@ -145,7 +145,7 @@ app.patch('/payments/:id/complete', async (req: Request, res: Response) => {
         const invoice = await prisma.invoice.create({
             data: {
                 paymentId: payment.id,
-                invoiceNo: generateInvoiceNo(),
+                invoiceNumber: generateInvoiceNo(),
                 items: {
                     sessionAmount: payment.sessionAmount,
                     orderAmount: payment.orderAmount,

@@ -29,7 +29,7 @@ app.get('/categories', async (req: Request, res: Response) => {
     try {
         const categories = await prisma.category.findMany({
             orderBy: { sortOrder: 'asc' },
-            include: { _count: { select: { menuItems: true } } },
+            include: { _count: { select: { items: true } } },
         });
         res.json({ success: true, data: categories });
     } catch (error) {
@@ -79,10 +79,10 @@ app.delete('/categories/:id', async (req: Request, res: Response) => {
 // Get all menu items
 app.get('/menu-items', async (req: Request, res: Response) => {
     try {
-        const { categoryId, available } = req.query;
+        const { categoryId, isAvailable } = req.query;
         const where: any = {};
         if (categoryId) where.categoryId = categoryId;
-        if (available !== undefined) where.available = available === 'true';
+        if (isAvailable !== undefined) where.isAvailable = isAvailable === 'true';
 
         const menuItems = await prisma.menuItem.findMany({
             where,
@@ -98,9 +98,9 @@ app.get('/menu-items', async (req: Request, res: Response) => {
 // Create menu item
 app.post('/menu-items', async (req: Request, res: Response) => {
     try {
-        const { categoryId, name, description, price, image, available } = req.body;
+        const { categoryId, name, description, price, image, isAvailable } = req.body;
         const menuItem = await prisma.menuItem.create({
-            data: { categoryId, name, description, price, image, available },
+            data: { categoryId, name, description, price, image, isAvailable },
         });
         res.status(201).json({ success: true, data: menuItem });
     } catch (error) {
@@ -111,10 +111,10 @@ app.post('/menu-items', async (req: Request, res: Response) => {
 // Update menu item
 app.put('/menu-items/:id', async (req: Request, res: Response) => {
     try {
-        const { categoryId, name, description, price, image, available } = req.body;
+        const { categoryId, name, description, price, image, isAvailable } = req.body;
         const menuItem = await prisma.menuItem.update({
             where: { id: req.params.id },
-            data: { categoryId, name, description, price, image, available },
+            data: { categoryId, name, description, price, image, isAvailable },
         });
         res.json({ success: true, data: menuItem });
     } catch (error) {
@@ -131,7 +131,7 @@ app.patch('/menu-items/:id/toggle', async (req: Request, res: Response) => {
         }
         const updated = await prisma.menuItem.update({
             where: { id: req.params.id },
-            data: { available: !menuItem.available },
+            data: { isAvailable: !menuItem.isAvailable },
         });
         res.json({ success: true, data: updated });
     } catch (error) {
@@ -195,18 +195,17 @@ app.post('/orders', async (req: Request, res: Response) => {
         const { sessionId, tableId, notes, items } = req.body;
 
         // Calculate total amount
-        let totalAmount = 0;
+        let totalPrice = 0;
         const orderItems = [];
         for (const item of items) {
             const menuItem = await prisma.menuItem.findUnique({ where: { id: item.menuItemId } });
             if (!menuItem) continue;
-            const unitPrice = menuItem.price;
-            totalAmount += unitPrice * item.quantity;
+            totalPrice += menuItem.price * item.quantity;
             orderItems.push({
                 menuItemId: item.menuItemId,
+                name: menuItem.name,
+                price: menuItem.price,
                 quantity: item.quantity,
-                unitPrice,
-                note: item.note,
             });
         }
 
@@ -215,7 +214,7 @@ app.post('/orders', async (req: Request, res: Response) => {
                 sessionId,
                 tableId,
                 notes,
-                totalAmount,
+                totalPrice,
                 items: { create: orderItems },
             },
             include: { items: { include: { menuItem: true } } },
@@ -266,8 +265,8 @@ app.get('/sessions/:sessionId/orders', async (req: Request, res: Response) => {
             include: { items: { include: { menuItem: true } } },
             orderBy: { createdAt: 'desc' },
         });
-        const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-        res.json({ success: true, data: { orders, totalAmount } });
+        const totalPrice = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+        res.json({ success: true, data: { orders, totalPrice } });
     } catch (error) {
         res.status(500).json({ success: false, error: 'Failed to fetch session orders' });
     }

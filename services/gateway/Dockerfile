@@ -15,6 +15,7 @@ RUN npm ci
 # Stage 3: Build shared package
 FROM base AS build-shared
 COPY --from=deps /app/node_modules ./node_modules
+COPY tsconfig.json ./
 COPY packages/shared ./packages/shared
 WORKDIR /app/packages/shared
 RUN npm run build

@@ -49,7 +49,7 @@ app.get('/sessions', async (req: Request, res: Response) => {
             ...session,
             currentCost: session.status === 'ACTIVE'
                 ? calculateCost(session.startTime, session.hourlyRate)
-                : session.totalAmount,
+                : session.totalCost,
         }));
 
         res.json({ success: true, data: sessionsWithCost });
@@ -69,7 +69,7 @@ app.get('/sessions/:id', async (req: Request, res: Response) => {
         }
         const currentCost = session.status === 'ACTIVE'
             ? calculateCost(session.startTime, session.hourlyRate)
-            : session.totalAmount;
+            : session.totalCost;
         res.json({ success: true, data: { ...session, currentCost } });
     } catch (error) {
         res.status(500).json({ success: false, error: 'Failed to fetch session' });
@@ -134,14 +134,14 @@ app.patch('/sessions/:id/end', async (req: Request, res: Response) => {
         }
 
         const endTime = new Date();
-        const totalAmount = calculateCost(session.startTime, session.hourlyRate, endTime);
+        const totalCost = calculateCost(session.startTime, session.hourlyRate, endTime);
 
         const updatedSession = await prisma.session.update({
             where: { id: req.params.id },
             data: {
                 status: 'COMPLETED',
                 endTime,
-                totalAmount,
+                totalCost,
             },
         });
 
@@ -175,7 +175,7 @@ app.get('/sessions/:id/cost', async (req: Request, res: Response) => {
 
         const currentCost = session.status === 'ACTIVE'
             ? calculateCost(session.startTime, session.hourlyRate)
-            : session.totalAmount;
+            : session.totalCost;
         const duration = Math.ceil(
             ((session.endTime || new Date()).getTime() - session.startTime.getTime()) / (1000 * 60)
         );

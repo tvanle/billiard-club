@@ -58,4 +58,4 @@ Thumbs.db
 .editorconfig
 .prettierrc
 .eslintrc*
-tsconfig.json
+# tsconfig.json - NEEDED for build, do not ignore
