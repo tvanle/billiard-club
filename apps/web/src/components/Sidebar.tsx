@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import {
     LayoutDashboard,
     Table2,
@@ -27,6 +29,7 @@ const navigation = [
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const [showLogout, setShowLogout] = useState(false);
 
     return (
         <aside className="fixed left-0 top-0 h-full w-64 bg-surface border-r border-border flex flex-col">
@@ -76,13 +79,7 @@ export default function Sidebar() {
             {/* User section */}
             <div className="p-4 border-t border-border">
                 <div
-                    onClick={() => {
-                        if (confirm('Đăng xuất khỏi hệ thống?')) {
-                            alert('Chức năng đang phát triển. Sẽ clear localStorage và redirect về /login');
-                            // localStorage.removeItem('token');
-                            // window.location.href = '/login';
-                        }
-                    }}
+                    onClick={() => setShowLogout(true)}
                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-light transition-colors cursor-pointer"
                 >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent-blue flex items-center justify-center text-white font-semibold">
@@ -95,6 +92,20 @@ export default function Sidebar() {
                     <LogOut size={18} className="text-text-muted hover:text-accent-red transition-colors" />
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={showLogout}
+                title="Đăng xuất"
+                message="Bạn có chắc muốn đăng xuất khỏi hệ thống?"
+                variant="info"
+                confirmLabel="Đăng xuất"
+                onConfirm={() => {
+                    setShowLogout(false);
+                    // TODO: implement real logout
+                    window.location.href = '/';
+                }}
+                onCancel={() => setShowLogout(false)}
+            />
         </aside>
     );
 }

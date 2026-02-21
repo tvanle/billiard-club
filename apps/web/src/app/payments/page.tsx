@@ -6,6 +6,7 @@ import StatsCard from '@/components/StatsCard';
 import { paymentsApi, Payment, PaymentMethod, PaymentStatus } from '@/lib/api';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import { useToast } from '@/components/Toast';
 
 const methodIcons: Record<PaymentMethod, string> = {
     CASH: '💵',
@@ -36,6 +37,7 @@ export default function PaymentsPage() {
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<PaymentStatus | 'ALL'>('ALL');
     const [methodFilter, setMethodFilter] = useState<PaymentMethod | 'ALL'>('ALL');
+    const { toast } = useToast();
 
     const fetchPayments = async () => {
         setLoading(true);
@@ -57,8 +59,9 @@ export default function PaymentsPage() {
         const res = await paymentsApi.complete(paymentId);
         if (res.success) {
             await fetchPayments();
+            toast('success', 'Hoàn tất thanh toán thành công!');
         } else {
-            alert(res.error || 'Failed to complete payment');
+            toast('error', res.error || 'Không thể hoàn tất thanh toán');
         }
     };
 

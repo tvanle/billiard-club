@@ -3,14 +3,24 @@
 import { useEffect, useState } from 'react';
 import { Plus, Search, Filter, Table2, Edit, Trash2 } from 'lucide-react';
 import { useTableStore } from '@/stores/tableStore';
+import { useToast } from '@/components/Toast';
+import { tablesApi } from '@/lib/api';
 import TableCard from '@/components/TableCard';
 
 export default function TablesPage() {
     const { tables, loading, fetchTables } = useTableStore();
+    const { toast } = useToast();
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState<string>('ALL');
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
     const [showAddModal, setShowAddModal] = useState(false);
+
+    // Add table form state
+    const [name, setName] = useState('');
+    const [type, setType] = useState<string>('POOL');
+    const [hourlyRate, setHourlyRate] = useState('');
+    const [location, setLocation] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         fetchTables();
@@ -27,6 +37,40 @@ export default function TablesPage() {
         POOL: filteredTables.filter((t) => t.type === 'POOL'),
         SNOOKER: filteredTables.filter((t) => t.type === 'SNOOKER'),
         CAROM: filteredTables.filter((t) => t.type === 'CAROM'),
+    };
+
+    const resetForm = () => {
+        setName('');
+        setType('POOL');
+        setHourlyRate('');
+        setLocation('');
+    };
+
+    const handleAddTable = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+
+        try {
+            const result = await tablesApi.create({
+                name,
+                type,
+                hourlyRate: Number(hourlyRate),
+                location: location || undefined,
+            });
+
+            if (result.success) {
+                toast('success', 'Thêm bàn thành công!');
+                resetForm();
+                setShowAddModal(false);
+                fetchTables();
+            } else {
+                toast('error', `Lỗi: ${result.error || 'Không thể thêm bàn'}`);
+            }
+        } catch (error) {
+            toast('error', `Lỗi: ${error instanceof Error ? error.message : 'Đã xảy ra lỗi không mong muốn'}`);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -160,32 +204,38 @@ export default function TablesPage() {
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-text-primary">Thêm bàn mới</h2>
                             <button
-                                onClick={() => setShowAddModal(false)}
+                                onClick={() => {
+                                    resetForm();
+                                    setShowAddModal(false);
+                                }}
                                 className="p-2 rounded-lg hover:bg-surface-light transition-colors"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <form className="space-y-4" onSubmit={(e) => {
-                            e.preventDefault();
-                            // TODO: Implement add table functionality
-                            alert('Chức năng đang phát triển. Sẽ gọi API create table ở đây.');
-                            setShowAddModal(false);
-                        }}>
+                        <form className="space-y-4" onSubmit={handleAddTable}>
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Tên bàn</label>
                                 <input
                                     type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
                                     className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
                                     placeholder="Ví dụ: Pool 06"
                                     required
+                                    disabled={submitting}
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Loại bàn</label>
-                                <select className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary">
+                                <select
+                                    value={type}
+                                    onChange={(e) => setType(e.target.value)}
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    disabled={submitting}
+                                >
                                     <option value="POOL">Pool</option>
                                     <option value="SNOOKER">Snooker</option>
                                     <option value="CAROM">Carom</option>
@@ -196,25 +246,45 @@ export default function TablesPage() {
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Giá theo giờ (VNĐ)</label>
                                 <input
                                     type="number"
+                                    value={hourlyRate}
+                                    onChange={(e) => setHourlyRate(e.target.value)}
                                     className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
                                     placeholder="50000"
                                     required
+                                    disabled={submitting}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Vị trí</label>
+                                <input
+                                    type="text"
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    placeholder="Ví dụ: Tầng 1, Khu A"
+                                    disabled={submitting}
                                 />
                             </div>
 
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"
-                                    onClick={() => setShowAddModal(false)}
+                                    onClick={() => {
+                                        resetForm();
+                                        setShowAddModal(false);
+                                    }}
                                     className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium transition-colors"
+                                    disabled={submitting}
                                 >
                                     Hủy
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium transition-colors"
+                                    disabled={submitting}
+                                    className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Thêm bàn
+                                    {submitting ? 'Đang thêm...' : 'Thêm bàn'}
                                 </button>
                             </div>
                         </form>

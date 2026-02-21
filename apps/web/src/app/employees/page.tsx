@@ -18,6 +18,8 @@ import {
 import { employeesApi, Employee, EmployeeStatus, UserRole } from '@/lib/api';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import { useToast } from '@/components/Toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const statusColors = {
     ACTIVE: 'bg-accent-green/20 text-accent-green border-accent-green/50',
@@ -44,6 +46,8 @@ const roleLabels = {
 };
 
 export default function EmployeesPage() {
+    const { toast } = useToast();
+
     const [employees, setEmployees] = useState<(Employee & { user?: any })[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -55,6 +59,31 @@ export default function EmployeesPage() {
     const [showViewModal, setShowViewModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [viewEmployee, setViewEmployee] = useState<any>(null);
+
+    // Add employee form state
+    const [addEmail, setAddEmail] = useState('');
+    const [addPassword, setAddPassword] = useState('');
+    const [addName, setAddName] = useState('');
+    const [addPhone, setAddPhone] = useState('');
+    const [addRole, setAddRole] = useState<'STAFF' | 'MANAGER'>('STAFF');
+    const [addEmployeeId, setAddEmployeeId] = useState('');
+    const [addPosition, setAddPosition] = useState('');
+    const [addDepartment, setAddDepartment] = useState('');
+    const [addSalary, setAddSalary] = useState('');
+    const [addShift, setAddShift] = useState<'MORNING' | 'AFTERNOON' | 'NIGHT'>('MORNING');
+    const [addLoading, setAddLoading] = useState(false);
+
+    // Edit employee form state
+    const [editPosition, setEditPosition] = useState('');
+    const [editDepartment, setEditDepartment] = useState('');
+    const [editSalary, setEditSalary] = useState('');
+    const [editShift, setEditShift] = useState<'MORNING' | 'AFTERNOON' | 'NIGHT'>('MORNING');
+    const [editStatus, setEditStatus] = useState<'ACTIVE' | 'ON_LEAVE' | 'INACTIVE'>('ACTIVE');
+    const [editLoading, setEditLoading] = useState(false);
+
+    // Delete confirm state
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
     const fetchEmployees = async () => {
         setLoading(true);
@@ -71,6 +100,109 @@ export default function EmployeesPage() {
     useEffect(() => {
         fetchEmployees();
     }, []);
+
+    // Reset add form
+    const resetAddForm = () => {
+        setAddEmail('');
+        setAddPassword('');
+        setAddName('');
+        setAddPhone('');
+        setAddRole('STAFF');
+        setAddEmployeeId('');
+        setAddPosition('');
+        setAddDepartment('');
+        setAddSalary('');
+        setAddShift('MORNING');
+    };
+
+    // Pre-fill edit form when viewEmployee changes and edit modal opens
+    const openEditModal = (employee: any) => {
+        setViewEmployee(employee);
+        setEditPosition(employee.position || '');
+        setEditDepartment(employee.department || '');
+        setEditSalary(employee.salary?.toString() || '');
+        setEditShift(employee.shift || 'MORNING');
+        setEditStatus(employee.status || 'ACTIVE');
+        setShowEditModal(true);
+    };
+
+    // Handle add employee submit
+    const handleAddSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAddLoading(true);
+        try {
+            const res = await employeesApi.create({
+                email: addEmail,
+                password: addPassword,
+                name: addName,
+                phone: addPhone,
+                role: addRole,
+                employeeId: addEmployeeId,
+                position: addPosition,
+                department: addDepartment,
+                salary: Number(addSalary),
+                shift: addShift,
+            });
+            if (res.success) {
+                toast('success', 'Thêm nhân viên thành công!');
+                await fetchEmployees();
+                resetAddForm();
+                setShowAddModal(false);
+            } else {
+                toast('error', res.error || 'Không thể thêm nhân viên');
+            }
+        } catch (err) {
+            toast('error', 'Đã xảy ra lỗi khi thêm nhân viên');
+        } finally {
+            setAddLoading(false);
+        }
+    };
+
+    // Handle edit employee submit
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!viewEmployee) return;
+        setEditLoading(true);
+        try {
+            const res = await employeesApi.update(viewEmployee.id, {
+                position: editPosition,
+                department: editDepartment,
+                salary: Number(editSalary),
+                shift: editShift,
+                status: editStatus,
+            });
+            if (res.success) {
+                toast('success', 'Cập nhật thành công!');
+                await fetchEmployees();
+                setShowEditModal(false);
+            } else {
+                toast('error', res.error || 'Không thể cập nhật nhân viên');
+            }
+        } catch (err) {
+            toast('error', 'Đã xảy ra lỗi khi cập nhật nhân viên');
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    // Handle delete employee
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        try {
+            const res = await employeesApi.delete(deleteTarget.id);
+            if (res.success) {
+                toast('success', 'Xóa nhân viên thành công!');
+                await fetchEmployees();
+            } else {
+                toast('error', res.error || 'Không thể xóa nhân viên');
+            }
+        } catch (err) {
+            toast('error', 'Đã xảy ra lỗi khi xóa nhân viên');
+        } finally {
+            setShowDeleteConfirm(false);
+            setDeleteTarget(null);
+        }
+    };
 
     if (loading) return <LoadingSpinner message="Loading employees..." />;
     if (error) return <ErrorDisplay message={error} onRetry={fetchEmployees} />;
@@ -101,7 +233,10 @@ export default function EmployeesPage() {
                     <p className="text-text-secondary mt-1">Quản lý thông tin và lịch làm việc của nhân viên</p>
                 </div>
                 <button
-                    onClick={() => setShowAddModal(true)}
+                    onClick={() => {
+                        resetAddForm();
+                        setShowAddModal(true);
+                    }}
                     className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-dark
                      rounded-lg text-white font-medium transition-colors"
                 >
@@ -256,19 +391,15 @@ export default function EmployeesPage() {
                                             <Eye size={16} className="text-text-muted hover:text-text-primary" />
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                setViewEmployee(employee);
-                                                setShowEditModal(true);
-                                            }}
+                                            onClick={() => openEditModal(employee)}
                                             className="p-2 rounded-lg hover:bg-surface-light transition-colors"
                                         >
                                             <Edit size={16} className="text-text-muted hover:text-primary" />
                                         </button>
                                         <button
                                             onClick={() => {
-                                                if (confirm(`Xóa nhân viên ${employee.user?.name}?`)) {
-                                                    alert('Chức năng đang phát triển. API: DELETE /employees/' + employee.id);
-                                                }
+                                                setDeleteTarget(employee);
+                                                setShowDeleteConfirm(true);
                                             }}
                                             className="p-2 rounded-lg hover:bg-surface-light transition-colors"
                                         >
@@ -288,47 +419,135 @@ export default function EmployeesPage() {
                     <div className="bg-surface rounded-xl p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between sticky top-0 bg-surface pb-4">
                             <h2 className="text-xl font-bold text-text-primary">Thêm nhân viên mới</h2>
-                            <button onClick={() => setShowAddModal(false)} className="p-2 rounded-lg hover:bg-surface-light">✕</button>
+                            <button onClick={() => setShowAddModal(false)} className="p-2 rounded-lg hover:bg-surface-light">&#10005;</button>
                         </div>
 
-                        <form className="space-y-4" onSubmit={(e) => {
-                            e.preventDefault();
-                            alert('Chức năng đang phát triển. API: POST /employees');
-                            setShowAddModal(false);
-                        }}>
+                        <form className="space-y-4" onSubmit={handleAddSubmit}>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Email *</label>
+                                    <input
+                                        type="email"
+                                        value={addEmail}
+                                        onChange={(e) => setAddEmail(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Mật khẩu *</label>
+                                    <input
+                                        type="password"
+                                        value={addPassword}
+                                        onChange={(e) => setAddPassword(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                        required
+                                    />
+                                </div>
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-2">Họ tên *</label>
-                                    <input type="text" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                    <input
+                                        type="text"
+                                        value={addName}
+                                        onChange={(e) => setAddName(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                        required
+                                    />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Email *</label>
-                                    <input type="email" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Số điện thoại</label>
+                                    <input
+                                        type="tel"
+                                        value={addPhone}
+                                        onChange={(e) => setAddPhone(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Số điện thoại *</label>
-                                    <input type="tel" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Vai trò *</label>
+                                    <select
+                                        value={addRole}
+                                        onChange={(e) => setAddRole(e.target.value as 'STAFF' | 'MANAGER')}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    >
+                                        <option value="STAFF">Nhân viên</option>
+                                        <option value="MANAGER">Quản lý</option>
+                                    </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Mã nhân viên *</label>
+                                    <input
+                                        type="text"
+                                        value={addEmployeeId}
+                                        onChange={(e) => setAddEmployeeId(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-2">Chức vụ *</label>
-                                    <input type="text" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required />
+                                    <input
+                                        type="text"
+                                        value={addPosition}
+                                        onChange={(e) => setAddPosition(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Phòng ban</label>
+                                    <input
+                                        type="text"
+                                        value={addDepartment}
+                                        onChange={(e) => setAddDepartment(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Phòng ban</label>
-                                    <input type="text" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Lương (VNĐ)</label>
+                                    <input
+                                        type="number"
+                                        value={addSalary}
+                                        onChange={(e) => setAddSalary(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Lương (VNĐ)</label>
-                                    <input type="number" className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Ca làm việc</label>
+                                    <select
+                                        value={addShift}
+                                        onChange={(e) => setAddShift(e.target.value as 'MORNING' | 'AFTERNOON' | 'NIGHT')}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                    >
+                                        <option value="MORNING">Sáng</option>
+                                        <option value="AFTERNOON">Chiều</option>
+                                        <option value="NIGHT">Tối</option>
+                                    </select>
                                 </div>
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium">Hủy</button>
-                                <button type="submit" className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium">Thêm nhân viên</button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddModal(false)}
+                                    className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={addLoading}
+                                    className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {addLoading ? 'Đang thêm...' : 'Thêm nhân viên'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -341,7 +560,7 @@ export default function EmployeesPage() {
                     <div className="bg-surface rounded-xl p-6 max-w-lg w-full space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-text-primary">Thông tin nhân viên</h2>
-                            <button onClick={() => setShowViewModal(false)} className="p-2 rounded-lg hover:bg-surface-light">✕</button>
+                            <button onClick={() => setShowViewModal(false)} className="p-2 rounded-lg hover:bg-surface-light">&#10005;</button>
                         </div>
                         <div className="space-y-3">
                             <div><span className="text-text-secondary">Họ tên:</span> <span className="text-text-primary font-medium">{viewEmployee.user?.name}</span></div>
@@ -363,33 +582,91 @@ export default function EmployeesPage() {
                     <div className="bg-surface rounded-xl p-6 max-w-lg w-full space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-text-primary">Chỉnh sửa nhân viên</h2>
-                            <button onClick={() => setShowEditModal(false)} className="p-2 rounded-lg hover:bg-surface-light">✕</button>
+                            <button onClick={() => setShowEditModal(false)} className="p-2 rounded-lg hover:bg-surface-light">&#10005;</button>
                         </div>
-                        <form className="space-y-4" onSubmit={(e) => {
-                            e.preventDefault();
-                            alert('Chức năng đang phát triển. API: PUT /employees/' + viewEmployee.id);
-                            setShowEditModal(false);
-                        }}>
+                        <form className="space-y-4" onSubmit={handleEditSubmit}>
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Chức vụ</label>
-                                <input type="text" defaultValue={viewEmployee.position} className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                                <input
+                                    type="text"
+                                    value={editPosition}
+                                    onChange={(e) => setEditPosition(e.target.value)}
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Phòng ban</label>
-                                <input type="text" defaultValue={viewEmployee.department} className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                                <input
+                                    type="text"
+                                    value={editDepartment}
+                                    onChange={(e) => setEditDepartment(e.target.value)}
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Lương (VNĐ)</label>
-                                <input type="number" defaultValue={viewEmployee.salary} className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" />
+                                <input
+                                    type="number"
+                                    value={editSalary}
+                                    onChange={(e) => setEditSalary(e.target.value)}
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Ca làm việc</label>
+                                <select
+                                    value={editShift}
+                                    onChange={(e) => setEditShift(e.target.value as 'MORNING' | 'AFTERNOON' | 'NIGHT')}
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                >
+                                    <option value="MORNING">Sáng</option>
+                                    <option value="AFTERNOON">Chiều</option>
+                                    <option value="NIGHT">Tối</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Trạng thái</label>
+                                <select
+                                    value={editStatus}
+                                    onChange={(e) => setEditStatus(e.target.value as 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE')}
+                                    className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                >
+                                    <option value="ACTIVE">Đang làm việc</option>
+                                    <option value="ON_LEAVE">Nghỉ phép</option>
+                                    <option value="INACTIVE">Đã nghỉ</option>
+                                </select>
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium">Hủy</button>
-                                <button type="submit" className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium">Lưu thay đổi</button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editLoading}
+                                    className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {editLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            {/* Delete Confirm Dialog */}
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                title="Xóa nhân viên"
+                message={`Bạn có chắc muốn xóa nhân viên ${deleteTarget?.user?.name}?`}
+                variant="danger"
+                confirmLabel="Xóa"
+                onConfirm={handleDelete}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
         </div>
     );
 }

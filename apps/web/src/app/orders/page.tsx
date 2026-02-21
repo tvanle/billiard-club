@@ -17,6 +17,7 @@ import {
 import { menuApi, ordersApi, Category, MenuItem, Order, OrderStatus } from '@/lib/api';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import { useToast } from '@/components/Toast';
 
 // Icon mapping for categories
 const iconMap: Record<string, any> = {
@@ -63,6 +64,7 @@ export default function OrdersPage() {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [cart, setCart] = useState<{ itemId: string; quantity: number }[]>([]);
+    const { toast } = useToast();
 
     const fetchData = async () => {
         setLoading(true);
@@ -94,7 +96,7 @@ export default function OrdersPage() {
 
     const handleCreateOrder = async (tableId: string, sessionId?: string) => {
         if (cart.length === 0) {
-            alert('Giỏ hàng trống!');
+            toast('warning', 'Giỏ hàng trống! Vui lòng chọn món.');
             return;
         }
 
@@ -112,8 +114,9 @@ export default function OrdersPage() {
         if (res.success) {
             setCart([]);
             await fetchData();
+            toast('success', 'Tạo order thành công!');
         } else {
-            alert(res.error || 'Failed to create order');
+            toast('error', res.error || 'Không thể tạo order');
         }
     };
 
@@ -121,8 +124,9 @@ export default function OrdersPage() {
         const res = await ordersApi.updateStatus(orderId, status);
         if (res.success) {
             await fetchData();
+            toast('success', 'Cập nhật trạng thái thành công!');
         } else {
-            alert(res.error || 'Failed to update order status');
+            toast('error', res.error || 'Không thể cập nhật trạng thái');
         }
     };
 

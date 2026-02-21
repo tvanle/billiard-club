@@ -12,7 +12,8 @@ import {
     Search,
     Timer,
 } from 'lucide-react';
-import { sessionsApi, Session, SessionStatus } from '@/lib/api';
+import { sessionsApi, tablesApi, Session, SessionStatus, Table, TableStatus } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorDisplay from '@/components/ErrorDisplay';
 
@@ -44,12 +45,21 @@ function SessionTimer({ startTime }: { startTime: string }) {
 }
 
 export default function SessionsPage() {
+    const { toast } = useToast();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [showStartModal, setShowStartModal] = useState(false);
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
+
+    // Modal state
+    const [availableTables, setAvailableTables] = useState<Table[]>([]);
+    const [tablesLoading, setTablesLoading] = useState(false);
+    const [modalTableId, setModalTableId] = useState('');
+    const [modalCustomerName, setModalCustomerName] = useState('');
+    const [modalNotes, setModalNotes] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     const fetchSessions = async () => {
         setLoading(true);
@@ -67,12 +77,75 @@ export default function SessionsPage() {
         fetchSessions();
     }, []);
 
+    const fetchAvailableTables = async () => {
+        setTablesLoading(true);
+        const res = await tablesApi.getAll();
+        if (res.success && res.data) {
+            const tables = res.data.filter(
+                (t: Table) => t.status === TableStatus.AVAILABLE
+            );
+            setAvailableTables(tables);
+        } else {
+            toast('error', res.error || 'Không thể tải danh sách bàn');
+            setAvailableTables([]);
+        }
+        setTablesLoading(false);
+    };
+
+    const openStartModal = () => {
+        setModalTableId('');
+        setModalCustomerName('');
+        setModalNotes('');
+        setShowStartModal(true);
+        fetchAvailableTables();
+    };
+
+    const closeStartModal = () => {
+        setShowStartModal(false);
+        setModalTableId('');
+        setModalCustomerName('');
+        setModalNotes('');
+    };
+
+    const handleStartSession = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!modalTableId) {
+            toast('error', 'Vui lòng chọn bàn');
+            return;
+        }
+
+        const selectedTable = availableTables.find((t) => t.id === modalTableId);
+        if (!selectedTable) {
+            toast('error', 'Bàn được chọn không hợp lệ');
+            return;
+        }
+
+        setSubmitting(true);
+        const res = await sessionsApi.start({
+            tableId: modalTableId,
+            staffId: 'staff-default',
+            hourlyRate: selectedTable.hourlyRate,
+            ...(modalNotes ? { notes: modalNotes } : {}),
+        } as any);
+
+        if (res.success) {
+            toast('success', 'Bắt đầu phiên thành công!');
+            await fetchSessions();
+            closeStartModal();
+        } else {
+            toast('error', res.error || 'Không thể bắt đầu phiên');
+        }
+        setSubmitting(false);
+    };
+
     const handleEndSession = async (sessionId: string) => {
         const res = await sessionsApi.end(sessionId);
         if (res.success) {
+            toast('success', 'Kết thúc phiên thành công!');
             await fetchSessions();
         } else {
-            alert(res.error || 'Failed to end session');
+            toast('error', res.error || 'Không thể kết thúc phiên');
         }
     };
 
@@ -99,7 +172,7 @@ export default function SessionsPage() {
                     <p className="text-text-secondary mt-1">Theo dõi và quản lý các phiên chơi</p>
                 </div>
                 <button
-                    onClick={() => setShowStartModal(true)}
+                    onClick={openStartModal}
                     className="flex items-center gap-2 px-4 py-2.5 bg-accent-green hover:bg-accent-green/80
                      rounded-lg text-white font-medium transition-colors"
                 >
@@ -250,32 +323,46 @@ export default function SessionsPage() {
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-text-primary">Bắt đầu phiên mới</h2>
                             <button
-                                onClick={() => setShowStartModal(false)}
+                                onClick={closeStartModal}
                                 className="p-2 rounded-lg hover:bg-surface-light transition-colors"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <form className="space-y-4" onSubmit={(e) => {
-                            e.preventDefault();
-                            alert('Chức năng đang phát triển. API: POST /sessions với tableId, customerId, staffId');
-                            setShowStartModal(false);
-                        }}>
+                        <form className="space-y-4" onSubmit={handleStartSession}>
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Chọn bàn</label>
-                                <select className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary" required>
-                                    <option value="">-- Chọn bàn --</option>
-                                    <option value="1">Pool 01 (50,000đ/h)</option>
-                                    <option value="2">Snooker 01 (80,000đ/h)</option>
-                                    <option value="3">Carom 01 (70,000đ/h)</option>
-                                </select>
+                                {tablesLoading ? (
+                                    <div className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-muted text-sm">
+                                        Đang tải danh sách bàn...
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={modalTableId}
+                                        onChange={(e) => setModalTableId(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
+                                        required
+                                    >
+                                        <option value="">-- Chọn bàn --</option>
+                                        {availableTables.map((table) => (
+                                            <option key={table.id} value={table.id}>
+                                                {table.name} ({table.hourlyRate.toLocaleString('vi-VN')}đ/h)
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                                {!tablesLoading && availableTables.length === 0 && (
+                                    <p className="text-xs text-accent-red mt-1">Không có bàn trống</p>
+                                )}
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Khách hàng (tùy chọn)</label>
                                 <input
                                     type="text"
+                                    value={modalCustomerName}
+                                    onChange={(e) => setModalCustomerName(e.target.value)}
                                     className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
                                     placeholder="Tên hoặc SĐT khách hàng"
                                 />
@@ -284,6 +371,8 @@ export default function SessionsPage() {
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-2">Ghi chú</label>
                                 <textarea
+                                    value={modalNotes}
+                                    onChange={(e) => setModalNotes(e.target.value)}
                                     className="w-full px-3 py-2 bg-surface-light border border-border rounded-lg text-text-primary"
                                     rows={3}
                                     placeholder="Ghi chú về phiên chơi..."
@@ -293,16 +382,18 @@ export default function SessionsPage() {
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"
-                                    onClick={() => setShowStartModal(false)}
+                                    onClick={closeStartModal}
+                                    disabled={submitting}
                                     className="flex-1 px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-text-primary font-medium transition-colors"
                                 >
                                     Hủy
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-accent-green hover:bg-accent-green/80 rounded-lg text-white font-medium transition-colors"
+                                    disabled={submitting || tablesLoading}
+                                    className="flex-1 px-4 py-2 bg-accent-green hover:bg-accent-green/80 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Bắt đầu
+                                    {submitting ? 'Đang xử lý...' : 'Bắt đầu'}
                                 </button>
                             </div>
                         </form>
